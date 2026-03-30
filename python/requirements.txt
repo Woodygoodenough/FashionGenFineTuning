@@ -1,0 +1,14 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+numpy==2.2.6
+scikit-learn==1.7.1
+umap-learn==0.5.9.post2
+pillow==11.3.0
+torch==2.8.0
+open-clip-torch==3.2.0
+python-multipart==0.0.20
+faiss-cpu==1.12.0
+matplotlib==3.10.6
+pyarrow==21.0.0
+PyYAML==6.0.2
+webdataset==1.0.2

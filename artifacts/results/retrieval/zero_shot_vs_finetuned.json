@@ -1,0 +1,55 @@
+{
+  "config": {
+    "model_name": "ViT-B-16",
+    "pretrained": "laion2b_s34b_b88k",
+    "eval_max_batches": 125,
+    "batch_size": 128
+  },
+  "zero_shot": {
+    "num_samples": 6912,
+    "align_loss": 1.5216247582877125,
+    "cls_loss": null,
+    "cls_acc": null,
+    "cls_valid_count": 0,
+    "recall@1_t2i": 0.1380208283662796,
+    "recall@1_i2t": 0.1219618022441864,
+    "recall@5_t2i": 0.46513310074806213,
+    "recall@5_i2t": 0.47931134700775146,
+    "recall@10_t2i": 0.5840567350387573,
+    "recall@10_i2t": 0.5982349514961243,
+    "avg_r1": 0.129991315305233,
+    "avg_r5": 0.4722222238779068,
+    "avg_r10": 0.5911458432674408,
+    "two_stage_mode": "off",
+    "base_avg_r1": 0.129991315305233,
+    "base_avg_r5": 0.4722222238779068,
+    "base_avg_r10": 0.5911458432674408,
+    "variant": "zero_shot"
+  },
+  "finetuned": {
+    "num_samples": 6912,
+    "align_loss": 0.4999675827997702,
+    "cls_loss": null,
+    "cls_acc": null,
+    "cls_valid_count": 0,
+    "recall@1_t2i": 0.19111689925193787,
+    "recall@1_i2t": 0.16782407462596893,
+    "recall@5_t2i": 0.6484375,
+    "recall@5_i2t": 0.6422164440155029,
+    "recall@10_t2i": 0.7690972089767456,
+    "recall@10_i2t": 0.7640335559844971,
+    "avg_r1": 0.1794704869389534,
+    "avg_r5": 0.6453269720077515,
+    "avg_r10": 0.7665653824806213,
+    "two_stage_mode": "off",
+    "base_avg_r1": 0.1794704869389534,
+    "base_avg_r5": 0.6453269720077515,
+    "base_avg_r10": 0.7665653824806213,
+    "variant": "finetuned"
+  },
+  "delta": {
+    "avg_r1": 0.0494791716337204,
+    "avg_r5": 0.17310474812984467,
+    "avg_r10": 0.17541953921318054
+  }
+}

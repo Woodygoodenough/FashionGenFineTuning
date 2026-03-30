@@ -1,0 +1,26 @@
+{
+  "config": {
+    "requested_sample_count": 30000,
+    "encoded_count": 30000,
+    "sample_size": 30000,
+    "query_count": 200,
+    "k": 20,
+    "hnsw_m": 32,
+    "ef_construction": 80,
+    "ef_search": 256,
+    "rerank_k": 1000
+  },
+  "exact": {
+    "avg_ms": 0.3814863692969084
+  },
+  "pure_ann": {
+    "avg_ms": 0.4071423038840294,
+    "speedup": 0.9369853381916587,
+    "overlap_at_k": 0.9499999999999998
+  },
+  "ann_rerank": {
+    "avg_ms": 1.0751828085631132,
+    "speedup": 0.35481070405760223,
+    "overlap_at_k": 0.9499999999999998
+  }
+}

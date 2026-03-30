@@ -1,0 +1,4 @@
+FashionGen base vs fine-tuned
+zero-shot avg_r1=0.1300 avg_r5=0.4722 avg_r10=0.5911
+finetuned avg_r1=0.1795 avg_r5=0.6453 avg_r10=0.7666
+delta avg_r1=+0.0495 avg_r5=+0.1731 avg_r10=+0.1754

@@ -1,0 +1,4 @@
+batch_size=128 eval_max_batches=125 epochs=1 max_steps=12000
+retrieval_only score=0.5040 avg_r1=0.1683 avg_r5=0.5972 avg_r10=0.7156
+joint_shared cls_weight=0.05 score=0.5095 avg_r1=0.1684 avg_r5=0.6060 avg_r10=0.7221
+delta score=+0.0055 avg_r1=+0.0001 avg_r5=+0.0088 avg_r10=+0.0065

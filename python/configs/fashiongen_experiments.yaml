@@ -1,0 +1,45 @@
+model:
+  name: ViT-B-16
+  pretrained: laion2b_s34b_b88k
+  cache_dir: /path/to/model_cache
+
+data:
+  train_dir: /path/to/fashiongen/train_shards
+  train_glob: clip_dataset_train_aug.*.tar
+  valid_dir: /path/to/fashiongen/valid_shards
+  valid_glob: clip_dataset_valid.*.tar
+
+checkpoints:
+  retrieval: /path/to/retrieval_only_checkpoint.pt
+  joint: /path/to/joint_checkpoint.pt
+
+runtime:
+  python_bin: python
+  batch_size: 128
+  num_workers: 1
+  seed: 42
+
+compare:
+  epochs: 1
+  max_steps: 12000
+  eval_every: 100
+  eval_max_batches: 125
+  lr: 5.0e-6
+  weight_decay: 1.0e-4
+  joint_cls_weight: 0.05
+
+ann:
+  sample_count: 60000
+  sample_size: 30000
+  query_count: 200
+  k: 20
+  hnsw_m: 32
+  ef_construction: 80
+  ef_search: 128
+  rerank_k: 200
+
+tsne:
+  manifest: ../artifacts/results/tsne/fashiongen_tsne_manifest.json
+
+outputs:
+  root: ../artifacts/generated
