@@ -1,28 +1,38 @@
-Deploy flow:
+Deploy scripts.
 
-1. Set secrets in `.env.aws.local` and `.env.deploy.local`.
-2. Run:
+Frontend:
 
 ```bash
 cd /Users/woodygoodenough/CodingProjects/FashionGenFineTuning
 python3 deploy/deploy_frontend.py
 ```
 
-Frontend deploy script:
-- builds the static Next.js frontend
-- exports a 10,000-image demo catalog
-- provisions or reuses ACM, S3, and CloudFront
-- publishes the site
-- upserts the Cloudflare DNS record for the frontend host
+This script:
+- exports the demo catalog and thumbnails
+- builds the static Next.js app
+- syncs the site to S3
+- reuses or provisions CloudFront and frontend DNS
 
-Backend deploy:
+Embedding backend:
 
 ```bash
 cd /Users/woodygoodenough/CodingProjects/FashionGenFineTuning
-python3 deploy/deploy_demo_api.py
+python3 python/scripts/build_demo_embedding_index.py \
+  --catalog nextjs/public/demo/catalog.json \
+  --images-root nextjs/public/demo/thumbnails \
+  --checkpoint /path/to/joint_checkpoint.pt \
+  --output-dir deploy/.state/demo_index_10k
+python3 deploy/deploy_embedding_api_ec2.py
 ```
 
-Backend deploy script:
-- packages the lightweight demo search API for Lambda
-- creates or updates the Lambda function URL
-- reuses the generated 10,000-item catalog
+Inputs can be overridden with:
+- `DEMO_INDEX_DIR_LOCAL`
+- `DEMO_MODEL_CHECKPOINT_LOCAL`
+
+The backend deploy packages:
+- FastAPI service
+- precomputed image embeddings
+- catalog metadata
+- selected CLIP checkpoint
+
+and publishes them behind the custom API hostname.
