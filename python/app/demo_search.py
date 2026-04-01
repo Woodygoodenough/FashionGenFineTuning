@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG_FILE = ROOT / "nextjs" / "public" / "demo" / "catalog.json"
+DEFAULT_CATALOG_FILE = ROOT / "nextjs" / "public" / "demo" / "catalog.json"
 
 
 def _tokenize(text: str) -> list[str]:
@@ -15,11 +16,18 @@ def _tokenize(text: str) -> list[str]:
 
 class DemoCatalog:
     def __init__(self):
-        if not CATALOG_FILE.exists():
+        env_path = os.environ.get("DEMO_CATALOG_FILE")
+        if env_path:
+            catalog_file = Path(env_path)
+        else:
+            packaged = Path(__file__).resolve().parents[1] / "catalog.json"
+            catalog_file = packaged if packaged.exists() else DEFAULT_CATALOG_FILE
+
+        if not catalog_file.exists():
             raise FileNotFoundError(
                 "Demo catalog missing. Run python/scripts/export_demo_catalog.py first."
             )
-        payload = json.loads(CATALOG_FILE.read_text())
+        payload = json.loads(catalog_file.read_text())
         self.items = payload["items"]
 
     def search(self, query: str, k: int = 10) -> dict:

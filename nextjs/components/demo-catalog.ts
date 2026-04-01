@@ -10,6 +10,11 @@ type DemoCatalogPayload = {
   items: DemoItem[];
 };
 
+type DemoSearchPayload = {
+  query: string;
+  items: DemoItem[];
+};
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
@@ -24,6 +29,27 @@ export async function loadCatalog(): Promise<DemoItem[]> {
     throw new Error("Failed to load demo catalog");
   }
   const payload = (await response.json()) as DemoCatalogPayload;
+  return payload.items;
+}
+
+export async function searchCatalogApi(
+  query: string,
+  topK: number,
+): Promise<DemoItem[] | null> {
+  const base = process.env.NEXT_PUBLIC_DEMO_API_BASE;
+  if (!base) {
+    return null;
+  }
+
+  const url = new URL("/api/demo/search", base);
+  url.searchParams.set("query", query);
+  url.searchParams.set("k", String(topK));
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error("Failed to fetch demo search results");
+  }
+  const payload = (await response.json()) as DemoSearchPayload;
   return payload.items;
 }
 

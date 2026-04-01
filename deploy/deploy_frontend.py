@@ -19,6 +19,17 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 STATE_FILE = STATE_DIR / "frontend.json"
 
 
+def load_env_file(path: Path) -> None:
+    if not path.exists():
+        return
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 def run(cmd: list[str], *, cwd: Path | None = None, capture: bool = True) -> str:
     result = subprocess.run(
         cmd,
@@ -222,7 +233,16 @@ def ensure_bucket(bucket: str, region: str) -> None:
 
 
 def build_site() -> Path:
-    run(["python3", str(REPO_ROOT / "python" / "scripts" / "export_demo_catalog.py"), "--limit", "300"], cwd=REPO_ROOT, capture=False)
+    run(
+        [
+            "python3",
+            str(REPO_ROOT / "python" / "scripts" / "export_demo_catalog.py"),
+            "--limit",
+            os.environ.get("DEMO_IMAGE_LIMIT", "10000"),
+        ],
+        cwd=REPO_ROOT,
+        capture=False,
+    )
     run(["npm", "install"], cwd=NEXTJS_DIR, capture=False)
     run(["npm", "run", "build"], cwd=NEXTJS_DIR, capture=False)
     out_dir = NEXTJS_DIR / "out"
@@ -233,9 +253,53 @@ def build_site() -> Path:
 
 def sync_site(out_dir: Path, bucket: str, region: str) -> None:
     run(
-        ["aws", "--region", region, "s3", "sync", str(out_dir) + "/", f"s3://{bucket}/", "--delete"],
+        [
+            "aws",
+            "--region",
+            region,
+            "s3",
+            "sync",
+            str(out_dir) + "/",
+            f"s3://{bucket}/",
+            "--delete",
+            "--exclude",
+            "demo/thumbnails/*",
+        ],
         capture=False,
     )
+    demo_dir = out_dir / "demo"
+    if demo_dir.exists():
+        for name in ["catalog.json", "manifest.txt"]:
+            path = demo_dir / name
+            if path.exists():
+                run(
+                    [
+                        "aws",
+                        "--region",
+                        region,
+                        "s3",
+                        "cp",
+                        str(path),
+                        f"s3://{bucket}/demo/{name}",
+                    ],
+                    capture=False,
+                )
+        thumbs_dir = demo_dir / "thumbnails"
+        if thumbs_dir.exists():
+            run(
+                [
+                    "aws",
+                    "--region",
+                    region,
+                    "s3",
+                    "sync",
+                    str(thumbs_dir) + "/",
+                    f"s3://{bucket}/demo/thumbnails/",
+                    "--delete",
+                    "--size-only",
+                ],
+                capture=False,
+            )
 
 
 def load_state() -> dict:
@@ -364,6 +428,8 @@ def upsert_dns_record(
 
 
 def main() -> None:
+    load_env_file(REPO_ROOT / ".env.aws.local")
+    load_env_file(REPO_ROOT / ".env.deploy.local")
     env = load_required_env()
     identity = aws(["sts", "get-caller-identity", "--output", "json"], region=env["AWS_REGION"])
     account_id = identity["Account"]
