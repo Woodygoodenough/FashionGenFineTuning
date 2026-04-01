@@ -8,9 +8,10 @@ __pycache__/
 python/.venv/
 node_modules/
 nextjs/node_modules/
-nextjs/
 .next/
+nextjs/.next/
 out/
+nextjs/out/
 reports/
 artifacts/generated/
 artifacts/demo/
@@ -21,3 +22,7 @@ artifacts/results/**/*.svg
 artifacts/results/**/*.pdf
 
 report_update/
+.env.deploy.local
+.env.aws.local
+deploy/.state/
+nextjs/public/demo/

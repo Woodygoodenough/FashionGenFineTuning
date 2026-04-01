@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .data_store import PrototypeStore, STATIC_DIR
+from .demo_search import DemoCatalog
 
 app = FastAPI(title="Fashion Multimodal Retrieval API", version="0.1.0")
 
@@ -18,11 +19,19 @@ app.add_middleware(
 
 store: PrototypeStore | None
 load_error: str | None = None
+demo_catalog: DemoCatalog | None
+demo_error: str | None = None
 try:
     store = PrototypeStore()
 except Exception as exc:
     store = None
     load_error = str(exc)
+
+try:
+    demo_catalog = DemoCatalog()
+except Exception as exc:
+    demo_catalog = None
+    demo_error = str(exc)
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -37,6 +46,15 @@ def require_store() -> PrototypeStore:
     return store
 
 
+def require_demo_catalog() -> DemoCatalog:
+    if demo_catalog is None:
+        detail = "Demo catalog unavailable. Run python/scripts/export_demo_catalog.py first."
+        if demo_error:
+            detail = f"{detail} Details: {demo_error}"
+        raise HTTPException(status_code=503, detail=detail)
+    return demo_catalog
+
+
 @app.get("/api/meta")
 def get_meta():
     return require_store().meta
@@ -44,8 +62,26 @@ def get_meta():
 
 @app.get("/api/health")
 def get_health():
-    active_store = require_store()
-    return {"status": "ok", "items": len(active_store.items), "ann_ready": active_store.meta["ann_ready"]}
+    payload = {"status": "ok", "prototype_ready": store is not None, "demo_ready": demo_catalog is not None}
+    if store is not None:
+        payload["items"] = len(store.items)
+        payload["ann_ready"] = store.meta["ann_ready"]
+    if demo_catalog is not None:
+        payload["demo_items"] = len(demo_catalog.items)
+    return payload
+
+
+@app.get("/api/demo/catalog")
+def get_demo_catalog():
+    return {"items": require_demo_catalog().items}
+
+
+@app.get("/api/demo/search")
+def search_demo_catalog(
+    q: str = Query("", alias="query"),
+    k: int = Query(10, ge=1, le=20),
+):
+    return require_demo_catalog().search(q, k)
 
 
 @app.get("/api/map")
