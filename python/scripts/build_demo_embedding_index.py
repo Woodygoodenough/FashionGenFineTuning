@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+import faiss
 import numpy as np
 import open_clip
 import torch
@@ -22,6 +23,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pretrained", default="laion2b_s34b_b88k")
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--hnsw-m", type=int, default=32)
+    parser.add_argument("--hnsw-ef-construction", type=int, default=80)
     return parser.parse_args()
 
 
@@ -94,7 +97,12 @@ def main() -> None:
             kept_items.extend(batch_items)
 
     embeddings = np.concatenate(embedding_rows, axis=0)
+    index = faiss.IndexHNSWFlat(embeddings.shape[1], args.hnsw_m, faiss.METRIC_INNER_PRODUCT)
+    index.hnsw.efConstruction = args.hnsw_ef_construction
+    index.add(embeddings)
+
     np.save(args.output_dir / "image_embeddings.npy", embeddings)
+    faiss.write_index(index, str(args.output_dir / "image_ann.index"))
     (args.output_dir / "catalog.json").write_text(json.dumps({"items": kept_items}))
     config = {
         "model_name": args.model_name,
@@ -102,6 +110,10 @@ def main() -> None:
         "checkpoint": args.checkpoint.name,
         "count": int(embeddings.shape[0]),
         "dim": int(embeddings.shape[1]),
+        "index_type": "IndexHNSWFlat",
+        "metric": "inner_product",
+        "hnsw_m": int(args.hnsw_m),
+        "hnsw_ef_construction": int(args.hnsw_ef_construction),
     }
     (args.output_dir / "config.json").write_text(json.dumps(config, indent=2))
     print(json.dumps(config, indent=2))

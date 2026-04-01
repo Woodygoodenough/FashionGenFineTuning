@@ -32,6 +32,7 @@ Inputs can be overridden with:
 The backend deploy packages:
 - FastAPI service
 - precomputed image embeddings
+- FAISS HNSW ANN index
 - catalog metadata
 - selected CLIP checkpoint
 

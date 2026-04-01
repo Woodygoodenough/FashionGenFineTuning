@@ -94,6 +94,7 @@ def create_bundle(bundle_path: Path) -> None:
         (ROOT / "deploy" / "backend_api_requirements.txt", "deploy/backend_api_requirements.txt"),
         (index_dir / "catalog.json", "runtime/catalog.json"),
         (index_dir / "image_embeddings.npy", "runtime/image_embeddings.npy"),
+        (index_dir / "image_ann.index", "runtime/image_ann.index"),
         (checkpoint_path, f"runtime/{checkpoint_path.name}"),
     ]
     with tarfile.open(bundle_path, "w:gz") as tar:
