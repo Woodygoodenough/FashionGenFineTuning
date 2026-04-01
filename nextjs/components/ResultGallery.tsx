@@ -51,7 +51,6 @@ export function ResultGallery({ query, topK, results }: ResultGalleryProps) {
                 <span>{item.category}</span>
                 <span>${syntheticPrice(item.id)}</span>
               </div>
-              <h3>{item.title}</h3>
               <div className="result-footer">
                 <span>
                   Similarity {typeof item.score === "number" ? item.score.toFixed(3) : "N/A"}

@@ -133,7 +133,7 @@ textarea {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  grid-template-columns: minmax(280px, 0.74fr) minmax(0, 1.26fr);
   gap: 18px;
   align-items: start;
 }
