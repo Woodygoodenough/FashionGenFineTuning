@@ -9,6 +9,14 @@ type ResultGalleryProps = {
   results: DemoItem[];
 };
 
+function syntheticPrice(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return 10 + (hash % 171);
+}
+
 export function ResultGallery({ query, topK, results }: ResultGalleryProps) {
   const visible = results.slice(0, topK);
 
@@ -41,12 +49,13 @@ export function ResultGallery({ query, topK, results }: ResultGalleryProps) {
             <div className="result-copy">
               <div className="result-meta">
                 <span>{item.category}</span>
-                <span>{item.id}</span>
+                <span>${syntheticPrice(item.id)}</span>
               </div>
               <h3>{item.title}</h3>
-              <p>{item.caption}</p>
               <div className="result-footer">
-                <span>FashionGen</span>
+                <span>
+                  Match {typeof item.score === "number" ? item.score.toFixed(3) : "N/A"}
+                </span>
                 <button type="button">Inspect</button>
               </div>
             </div>

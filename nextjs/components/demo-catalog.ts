@@ -4,6 +4,7 @@ export type DemoItem = {
   category: string;
   caption: string;
   image: string;
+  score?: number;
 };
 
 type DemoCatalogPayload = {
@@ -72,5 +73,8 @@ export function rankCatalog(items: DemoItem[], query: string, topK: number): Dem
   });
 
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK).map((row) => row.item);
+  return scored.slice(0, topK).map((row) => ({
+    ...row.item,
+    score: row.score,
+  }));
 }
