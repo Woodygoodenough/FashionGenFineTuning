@@ -14,6 +14,7 @@ import {
 export default function Home() {
   const apiEnabled = Boolean(process.env.NEXT_PUBLIC_DEMO_API_BASE);
   const [query, setQuery] = useState("red hat with a soft wool texture");
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [topK, setTopK] = useState(5);
   const [catalog, setCatalog] = useState<DemoItem[]>([]);
   const [results, setResults] = useState<DemoItem[]>([]);
@@ -26,11 +27,21 @@ export default function Home() {
   }, [apiEnabled]);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [query]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function run() {
       try {
-        const remote = apiEnabled ? await searchCatalogApi(query, topK) : null;
+        const remote = apiEnabled ? await searchCatalogApi(debouncedQuery, topK) : null;
         if (!cancelled && remote) {
           setResults(remote);
           return;
@@ -38,7 +49,7 @@ export default function Home() {
       } catch {}
 
       if (!cancelled) {
-        setResults(rankCatalog(catalog, query, topK));
+        setResults(rankCatalog(catalog, debouncedQuery, topK));
       }
     }
 
@@ -46,7 +57,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [apiEnabled, catalog, query, topK]);
+  }, [apiEnabled, catalog, debouncedQuery, topK]);
 
   return (
     <main className="page-shell">
