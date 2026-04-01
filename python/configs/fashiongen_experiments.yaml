@@ -20,8 +20,11 @@ runtime:
   seed: 42
 
 compare:
-  epochs: 1
-  max_steps: 12000
+  epochs: 20
+  min_epochs: 5
+  patience: 3
+  early_stop_min_delta: 0.0
+  max_steps: null
   eval_every: 100
   eval_max_batches: 125
   lr: 5.0e-6

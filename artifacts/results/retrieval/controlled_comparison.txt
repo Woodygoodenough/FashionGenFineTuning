@@ -1,4 +1,4 @@
-batch_size=128 eval_max_batches=125 epochs=1 max_steps=12000
-retrieval_only score=0.5040 avg_r1=0.1683 avg_r5=0.5972 avg_r10=0.7156
-joint_shared cls_weight=0.05 score=0.5095 avg_r1=0.1684 avg_r5=0.6060 avg_r10=0.7221
-delta score=+0.0055 avg_r1=+0.0001 avg_r5=+0.0088 avg_r10=+0.0065
+batch_size=128 eval_max_batches=125 epochs=20 max_steps=None
+retrieval_only score=0.5236 avg_r1=0.1726 avg_r5=0.6255 avg_r10=0.7386
+joint_shared cls_weight=0.08 score=0.5265 avg_r1=0.1704 avg_r5=0.6307 avg_r10=0.7438
+delta score=+0.0030 avg_r1=-0.0022 avg_r5=+0.0052 avg_r10=+0.0051

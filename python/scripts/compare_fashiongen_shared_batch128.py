@@ -21,8 +21,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument('--run-root', type=Path, required=True)
     p.add_argument('--seed', type=int, default=42)
     p.add_argument('--batch-size', type=int, default=128)
-    p.add_argument('--epochs', type=int, default=1)
-    p.add_argument('--max-steps', type=int, default=12000)
+    p.add_argument('--epochs', type=int, default=20)
+    p.add_argument('--min-epochs', type=int, default=5)
+    p.add_argument('--patience', type=int, default=3)
+    p.add_argument('--early-stop-min-delta', type=float, default=0.0)
+    p.add_argument('--max-steps', type=int, default=None)
     p.add_argument('--eval-every', type=int, default=100)
     p.add_argument('--eval-max-batches', type=int, default=125)
     p.add_argument('--log-every', type=int, default=20)
@@ -74,6 +77,11 @@ def find_best_eval(run_dir: Path) -> dict[str, Any]:
     return {'eval_file': chosen.name, 'best_eval': best}
 
 
+def find_checkpoint(run_dir: Path) -> str | None:
+    ckpts = sorted(run_dir.glob('joint_clip_step_*.pt'))
+    return ckpts[-1].name if ckpts else None
+
+
 def run_variant(args: argparse.Namespace, logger: logging.Logger, variant_name: str, cls_weight: float) -> dict[str, Any]:
     variant_dir = args.run_root / variant_name
     variant_dir.mkdir(parents=True, exist_ok=True)
@@ -94,7 +102,9 @@ def run_variant(args: argparse.Namespace, logger: logging.Logger, variant_name: 
         '--lr', str(args.lr),
         '--weight-decay', str(args.weight_decay),
         '--epochs', str(args.epochs),
-        '--max-steps', str(args.max_steps),
+        '--min-epochs', str(args.min_epochs),
+        '--patience', str(args.patience),
+        '--early-stop-min-delta', str(args.early_stop_min_delta),
         '--seed', str(args.seed),
         '--eval-every', str(args.eval_every),
         '--eval-max-batches', str(args.eval_max_batches),
@@ -111,7 +121,10 @@ def run_variant(args: argparse.Namespace, logger: logging.Logger, variant_name: 
         '--cls-dropout', '0.1',
         '--cls-label-smoothing', '0.05',
         '--two-stage-eval', 'off',
+        '--save-checkpoint',
     ]
+    if args.max_steps is not None:
+        cmd.extend(['--max-steps', str(args.max_steps)])
     (variant_dir / 'run_manifest.json').write_text(json.dumps({'variant_name': variant_name, 'cls_weight': cls_weight, 'cmd': cmd}, indent=2), encoding='utf-8')
     logger.info('$ %s', ' '.join(cmd))
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True)
@@ -120,6 +133,7 @@ def run_variant(args: argparse.Namespace, logger: logging.Logger, variant_name: 
     best = result['best_eval']
     logger.info('%s best score=%.4f avg_r1=%.4f avg_r5=%.4f avg_r10=%.4f step=%s', variant_name, float(best['score']), float(best['avg_r1']), float(best['avg_r5']), float(best['avg_r10']), best.get('step'))
     result['run_dir'] = variant_dir.name
+    result['checkpoint'] = find_checkpoint(variant_dir)
     return result
 
 
@@ -139,6 +153,9 @@ def main() -> int:
             'seed': args.seed,
             'batch_size': args.batch_size,
             'epochs': args.epochs,
+            'min_epochs': args.min_epochs,
+            'patience': args.patience,
+            'early_stop_min_delta': args.early_stop_min_delta,
             'max_steps': args.max_steps,
             'eval_every': args.eval_every,
             'eval_max_batches': args.eval_max_batches,

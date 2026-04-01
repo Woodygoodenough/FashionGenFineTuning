@@ -19,3 +19,5 @@ artifacts/results/**/*.jpg
 artifacts/results/**/*.jpeg
 artifacts/results/**/*.svg
 artifacts/results/**/*.pdf
+
+report_update/

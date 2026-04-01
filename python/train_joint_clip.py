@@ -96,7 +96,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lr", type=float, default=1e-5)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--max-steps", type=int, default=100)
+    parser.add_argument("--min-epochs", type=int, default=1)
+    parser.add_argument("--patience", type=int, default=None)
+    parser.add_argument("--early-stop-min-delta", type=float, default=0.0)
+    parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument("--log-dir", type=Path, required=True)
@@ -802,18 +805,90 @@ def main() -> None:
     eval_path = args.log_dir / f"eval_{run_ts}.jsonl"
     step = 0
     model.train()
+    last_cls_w_eff = 0.0
+    last_eval_step = 0
+    last_eval_record: dict | None = None
+    best_epoch_score: float | None = None
+    best_epoch: int | None = None
+    epochs_without_improve = 0
+    stop_early = False
+
+    patience_enabled = args.patience is not None
+    if patience_enabled and valid_loader is None:
+        logger.warning("Patience requested but validation is disabled; early stopping will be ignored.")
+        patience_enabled = False
+
+    def evaluate(step_value: int, epoch_value: int, cls_weight_effective: float) -> dict:
+        eval_record = run_validation(
+            model=model,
+            tokenizer=tokenizer,
+            loader=valid_loader,
+            device=device,
+            loss_type=args.loss_type,
+            logit_bias=logit_bias,
+            max_batches=args.eval_max_batches,
+            cls_loss_type=args.cls_loss_type,
+            cls_label_smoothing=args.cls_label_smoothing,
+            cls_focal_gamma=args.cls_focal_gamma,
+            class_weights=class_weights,
+            two_stage_mode=args.two_stage_eval,
+            two_stage_topk_categories=args.two_stage_topk_categories,
+            two_stage_alpha=args.two_stage_alpha,
+            two_stage_text_temp=args.two_stage_text_temp,
+            category_text_prototypes=category_text_prototypes,
+        )
+        eval_record["step"] = step_value
+        eval_record["epoch"] = epoch_value
+        eval_record["cls_weight_effective"] = float(cls_weight_effective)
+        eval_record["score"] = (
+            0.30 * float(eval_record["avg_r1"])
+            + 0.40 * float(eval_record["avg_r5"])
+            + 0.30 * float(eval_record["avg_r10"])
+        )
+        with eval_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(eval_record) + "\n")
+        logger.info(
+            "eval@step=%d epoch=%d n=%s avg_r1=%.4f avg_r5=%.4f avg_r10=%.4f score=%.4f cls_acc=%s",
+            step_value,
+            epoch_value,
+            eval_record.get("num_samples"),
+            eval_record.get("avg_r1", 0.0),
+            eval_record.get("avg_r5", 0.0),
+            eval_record.get("avg_r10", 0.0),
+            eval_record.get("score", 0.0),
+            eval_record.get("cls_acc"),
+        )
+        if args.two_stage_eval != "off":
+            logger.info(
+                (
+                    "two-stage@step=%d mode=%s avg_r1=%.4f avg_r5=%.4f "
+                    "avg_r10=%.4f score=%.4f delta_score=%+.4f"
+                ),
+                step_value,
+                eval_record.get("two_stage_mode"),
+                eval_record.get("two_stage_avg_r1", 0.0),
+                eval_record.get("two_stage_avg_r5", 0.0),
+                eval_record.get("two_stage_avg_r10", 0.0),
+                eval_record.get("two_stage_score", 0.0),
+                eval_record.get("two_stage_delta_score", 0.0),
+            )
+        return eval_record
 
     logger.info(
         (
             "Training start | loss=%s align_w=%.3f cls_w=%.3f schedule=%s "
-            "batch=%d max_steps=%d cls_head=%s cls_feature=%s cls_grad=%s cls_loss=%s"
+            "batch=%d max_steps=%s epochs=%d min_epochs=%d patience=%s "
+            "cls_head=%s cls_feature=%s cls_grad=%s cls_loss=%s"
         ),
         args.loss_type,
         args.align_weight,
         args.cls_weight,
         args.cls_weight_schedule,
         args.batch_size,
-        args.max_steps,
+        str(args.max_steps) if args.max_steps is not None else "none",
+        args.epochs,
+        args.min_epochs,
+        str(args.patience) if args.patience is not None else "none",
         args.cls_head_type,
         args.cls_feature,
         args.cls_grad,
@@ -823,7 +898,7 @@ def main() -> None:
     for epoch in range(args.epochs):
         logger.info("Epoch %d/%d", epoch + 1, args.epochs)
         for images, texts, cls_targets in loader:
-            if step >= args.max_steps:
+            if args.max_steps is not None and step >= args.max_steps:
                 break
             step += 1
 
@@ -836,6 +911,7 @@ def main() -> None:
                 schedule=args.cls_weight_schedule,
                 warmup_steps=args.cls_weight_warmup_steps,
             )
+            last_cls_w_eff = float(cls_w_eff)
 
             optimizer.zero_grad(set_to_none=True)
             with autocast(enabled=(device.type == "cuda")):
@@ -896,60 +972,45 @@ def main() -> None:
                 )
 
             if valid_loader is not None and args.eval_every > 0 and step % args.eval_every == 0:
-                eval_record = run_validation(
-                    model=model,
-                    tokenizer=tokenizer,
-                    loader=valid_loader,
-                    device=device,
-                    loss_type=args.loss_type,
-                    logit_bias=logit_bias,
-                    max_batches=args.eval_max_batches,
-                    cls_loss_type=args.cls_loss_type,
-                    cls_label_smoothing=args.cls_label_smoothing,
-                    cls_focal_gamma=args.cls_focal_gamma,
-                    class_weights=class_weights,
-                    two_stage_mode=args.two_stage_eval,
-                    two_stage_topk_categories=args.two_stage_topk_categories,
-                    two_stage_alpha=args.two_stage_alpha,
-                    two_stage_text_temp=args.two_stage_text_temp,
-                    category_text_prototypes=category_text_prototypes,
-                )
-                eval_record["step"] = step
-                eval_record["epoch"] = epoch + 1
-                eval_record["cls_weight_effective"] = float(cls_w_eff)
-                eval_record["score"] = (
-                    0.30 * float(eval_record["avg_r1"])
-                    + 0.40 * float(eval_record["avg_r5"])
-                    + 0.30 * float(eval_record["avg_r10"])
-                )
-                with eval_path.open("a", encoding="utf-8") as f:
-                    f.write(json.dumps(eval_record) + "\n")
-                logger.info(
-                    "eval@step=%d n=%s avg_r1=%.4f avg_r5=%.4f avg_r10=%.4f score=%.4f cls_acc=%s",
-                    step,
-                    eval_record.get("num_samples"),
-                    eval_record.get("avg_r1", 0.0),
-                    eval_record.get("avg_r5", 0.0),
-                    eval_record.get("avg_r10", 0.0),
-                    eval_record.get("score", 0.0),
-                    eval_record.get("cls_acc"),
-                )
-                if args.two_stage_eval != "off":
-                    logger.info(
-                        (
-                            "two-stage@step=%d mode=%s avg_r1=%.4f avg_r5=%.4f "
-                            "avg_r10=%.4f score=%.4f delta_score=%+.4f"
-                        ),
-                        step,
-                        eval_record.get("two_stage_mode"),
-                        eval_record.get("two_stage_avg_r1", 0.0),
-                        eval_record.get("two_stage_avg_r5", 0.0),
-                        eval_record.get("two_stage_avg_r10", 0.0),
-                        eval_record.get("two_stage_score", 0.0),
-                        eval_record.get("two_stage_delta_score", 0.0),
-                    )
+                last_eval_record = evaluate(step, epoch + 1, last_cls_w_eff)
+                last_eval_step = step
 
-        if step >= args.max_steps:
+        if valid_loader is not None and (args.eval_every > 0 or patience_enabled) and step > 0:
+            if last_eval_record is None or last_eval_step != step:
+                last_eval_record = evaluate(step, epoch + 1, last_cls_w_eff)
+                last_eval_step = step
+
+        if patience_enabled and epoch + 1 >= args.min_epochs and last_eval_record is not None:
+            score = float(last_eval_record["score"])
+            if best_epoch_score is None or score > best_epoch_score + args.early_stop_min_delta:
+                best_epoch_score = score
+                best_epoch = epoch + 1
+                epochs_without_improve = 0
+                logger.info(
+                    "New best validation score %.4f at epoch %d",
+                    best_epoch_score,
+                    best_epoch,
+                )
+            else:
+                epochs_without_improve += 1
+                logger.info(
+                    "No epoch-level validation improvement for %d/%d patience epochs",
+                    epochs_without_improve,
+                    args.patience,
+                )
+                if epochs_without_improve >= args.patience:
+                    logger.info(
+                        "Early stopping triggered at epoch %d (best epoch=%d, best score=%.4f)",
+                        epoch + 1,
+                        best_epoch,
+                        best_epoch_score,
+                    )
+                    stop_early = True
+
+        if stop_early:
+            break
+
+        if args.max_steps is not None and step >= args.max_steps:
             break
 
     logger.info("Training done at step %d", step)

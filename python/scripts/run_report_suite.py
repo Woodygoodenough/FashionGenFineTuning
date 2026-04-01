@@ -57,7 +57,7 @@ def main() -> None:
     train_script = ROOT / "train_joint_clip.py"
 
     if "compare" in args.tasks:
-        run([
+        compare_cmd = [
             python_bin,
             str(ROOT / "scripts" / "compare_fashiongen_shared_batch128.py"),
             "--python-bin", python_bin,
@@ -69,14 +69,19 @@ def main() -> None:
             "--seed", str(runtime["seed"]),
             "--batch-size", str(runtime["batch_size"]),
             "--epochs", str(compare["epochs"]),
-            "--max-steps", str(compare["max_steps"]),
+            "--min-epochs", str(compare.get("min_epochs", 1)),
+            "--patience", str(compare.get("patience", 3)),
+            "--early-stop-min-delta", str(compare.get("early_stop_min_delta", 0.0)),
             "--eval-every", str(compare["eval_every"]),
             "--eval-max-batches", str(compare["eval_max_batches"]),
             "--num-workers", str(runtime["num_workers"]),
             "--lr", str(compare["lr"]),
             "--weight-decay", str(compare["weight_decay"]),
             "--joint-cls-weight", str(compare["joint_cls_weight"]),
-        ])
+        ]
+        if compare.get("max_steps") is not None:
+            compare_cmd.extend(["--max-steps", str(compare["max_steps"])])
+        run(compare_cmd)
 
     if "evaluate" in args.tasks:
         run([

@@ -12,28 +12,28 @@
     "PANTS",
     "SNEAKERS"
   ],
-  "manifest": "tsne/fashiongen_tsne_balanced_manifest.json",
-  "retrieval_checkpoint": "retrieval_only/joint_clip_step_1656.pt",
-  "joint_checkpoint": "w0p05/joint_clip_step_1656.pt",
+  "manifest": "tsne/fashiongen_tsne_manifest.json",
+  "retrieval_checkpoint": "retrieval_only/joint_clip_step_4968.pt",
+  "joint_checkpoint": "joint_w0p08/joint_clip_step_3726.pt",
   "zero_shot": {
-    "knn_same_category_at5": 0.6574666666666666,
-    "knn_same_category_at10": 0.6400666666666667,
-    "silhouette": 0.0748150646686554,
-    "calinski_harabasz": 40.224796295166016,
-    "davies_bouldin": 3.8159017709988925
+    "knn_same_category_at5": 0.664,
+    "knn_same_category_at10": 0.6461333333333333,
+    "silhouette": 0.07415629178285599,
+    "calinski_harabasz": 39.95819091796875,
+    "davies_bouldin": 3.8176918787122327
   },
   "retrieval_only": {
-    "knn_same_category_at5": 0.6462666666666665,
-    "knn_same_category_at10": 0.6213333333333333,
-    "silhouette": 0.06510965526103973,
-    "calinski_harabasz": 41.80173873901367,
-    "davies_bouldin": 3.754333774553783
+    "knn_same_category_at5": 0.6612,
+    "knn_same_category_at10": 0.6374666666666667,
+    "silhouette": 0.07084795832633972,
+    "calinski_harabasz": 29.263383865356445,
+    "davies_bouldin": 4.246375976947273
   },
   "joint": {
-    "knn_same_category_at5": 0.698,
-    "knn_same_category_at10": 0.6849333333333334,
-    "silhouette": 0.11356749385595322,
-    "calinski_harabasz": 57.969547271728516,
-    "davies_bouldin": 3.185940849327679
+    "knn_same_category_at5": 0.7552,
+    "knn_same_category_at10": 0.7416,
+    "silhouette": 0.13706634938716888,
+    "calinski_harabasz": 49.690818786621094,
+    "davies_bouldin": 3.2022253291395315
   }
 }
