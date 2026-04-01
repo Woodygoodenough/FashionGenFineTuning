@@ -54,7 +54,7 @@ export function ResultGallery({ query, topK, results }: ResultGalleryProps) {
               <h3>{item.title}</h3>
               <div className="result-footer">
                 <span>
-                  Match {typeof item.score === "number" ? item.score.toFixed(3) : "N/A"}
+                  Similarity {typeof item.score === "number" ? item.score.toFixed(3) : "N/A"}
                 </span>
                 <button type="button">Inspect</button>
               </div>
