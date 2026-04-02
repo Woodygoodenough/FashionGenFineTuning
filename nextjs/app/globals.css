@@ -702,3 +702,220 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+
+.embedding-page {
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.embedding-shell {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.48fr) minmax(0, 1.52fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.embedding-left-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.embedding-card,
+.embedding-canvas-card {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  backdrop-filter: blur(18px);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.embedding-card-head,
+.embedding-canvas-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.embedding-card-head strong,
+.embedding-canvas-head strong {
+  font-size: 1.05rem;
+}
+
+.embedding-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.embedding-tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.embedding-tab,
+.embedding-filter-chip {
+  border: 1px solid rgba(62, 47, 30, 0.12);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.embedding-tab:hover,
+.embedding-filter-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(187, 78, 51, 0.28);
+}
+
+.embedding-tab.is-active,
+.embedding-filter-chip.is-active {
+  background: rgba(255, 244, 235, 0.96);
+  border-color: rgba(187, 78, 51, 0.3);
+}
+
+.embedding-filter-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.embedding-filter-chip {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border-radius: 18px;
+  text-align: left;
+}
+
+.embedding-chip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.embedding-chip-count {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.embedding-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.embedding-stat-grid article {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--panel);
+  padding: 16px;
+}
+
+.embedding-stat-grid strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.2rem;
+}
+
+.embedding-canvas-head {
+  flex-direction: row;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.embedding-canvas-head p {
+  max-width: 340px;
+}
+
+.embedding-canvas-wrap {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 18% 14%, rgba(235, 200, 181, 0.35), transparent 28%),
+    linear-gradient(180deg, rgba(255, 251, 245, 0.92), rgba(249, 242, 232, 0.94));
+}
+
+.embedding-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.embedding-grid line {
+  stroke: rgba(62, 47, 30, 0.08);
+  stroke-width: 1;
+}
+
+.embedding-tooltip {
+  position: fixed;
+  width: 220px;
+  border: 1px solid rgba(45, 34, 23, 0.18);
+  border-radius: 20px;
+  background: #fffaf4;
+  box-shadow: 0 24px 48px rgba(55, 39, 18, 0.18);
+  overflow: hidden;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.embedding-tooltip img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  background: #f2e7db;
+}
+
+.embedding-tooltip-copy {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 14px;
+}
+
+.embedding-tooltip-copy strong {
+  font-size: 0.96rem;
+}
+
+.embedding-tooltip-copy span:last-child {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+@media (max-width: 1120px) {
+  .embedding-page,
+  .embedding-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .embedding-canvas-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .embedding-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .embedding-tooltip {
+    width: 180px;
+  }
+}
