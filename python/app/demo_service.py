@@ -42,6 +42,15 @@ def build_app() -> FastAPI:
     def search(query: str = Query(""), k: int = Query(10, ge=1, le=20)):
         return search_impl.search(query, k)
 
+    @app.get("/api/demo/ann-benchmark")
+    def ann_benchmark(
+        query_count: int = Query(100, ge=1, le=100),
+        k: int = Query(10, ge=1, le=20),
+    ):
+        if hasattr(search_impl, "benchmark"):
+            return search_impl.benchmark(query_count=query_count, k=k)
+        raise RuntimeError("Benchmarking is only available in embedding mode")
+
     return app
 
 

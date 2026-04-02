@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 
 import faiss
@@ -52,6 +53,42 @@ class EmbeddingSearchIndex:
 
         self.model = model
         self.tokenizer = open_clip.get_tokenizer(self.model_name)
+        self.benchmark_queries = self._build_benchmark_queries()
+
+    def _build_benchmark_queries(self) -> list[str]:
+        seeds = [
+            "red wool hat",
+            "black leather handbag",
+            "white cotton shirt",
+            "blue denim jeans",
+            "cream evening dress",
+            "brown suede boots",
+            "grey knit sweater",
+            "navy tailored blazer",
+            "silver chain necklace",
+            "green pleated skirt",
+            "beige trench coat",
+            "running sneakers in white",
+            "pink silk blouse",
+            "black ankle boots",
+            "structured tote bag",
+            "oversized hoodie",
+            "cropped jacket",
+            "printed summer dress",
+            "straight leg pants",
+            "wool scarf",
+        ]
+        queries: list[str] = []
+        while len(queries) < 100:
+            queries.extend(seeds)
+        return queries[:100]
+
+    def _encode_query(self, query: str) -> np.ndarray:
+        tokens = self.tokenizer([query])
+        with torch.inference_mode():
+            text_features = self.model.encode_text(tokens.to(self.device))
+            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        return text_features[0].detach().cpu().numpy().astype(np.float32)
 
     def health(self) -> dict:
         return {
@@ -65,20 +102,58 @@ class EmbeddingSearchIndex:
             "ef_search": self.ef_search,
         }
 
-    def search(self, query: str, k: int = 10) -> dict:
-        k = min(k, len(self.items))
-        tokens = self.tokenizer([query])
-        with torch.inference_mode():
-            text_features = self.model.encode_text(tokens.to(self.device))
-            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-        query_vec = text_features[0].detach().cpu().numpy().astype(np.float32)
-        scores, indices = self.index.search(query_vec.reshape(1, -1), k)
-
+    def _format_items(self, indices: list[int], scores: list[float]) -> list[dict]:
         items = []
-        for score, idx in zip(scores[0].tolist(), indices[0].tolist()):
+        for score, idx in zip(scores, indices):
             if idx < 0:
                 continue
             item = dict(self.items[idx])
             item["score"] = float(score)
             items.append(item)
-        return {"query": query, "items": items}
+        return items
+
+    def search_exact(self, query: str, k: int = 10) -> dict:
+        k = min(k, len(self.items))
+        query_vec = self._encode_query(query)
+        scores = self.image_embeddings @ query_vec
+        top_idx = np.argpartition(scores, -k)[-k:]
+        top_idx = top_idx[np.argsort(scores[top_idx])[::-1]]
+        return {
+            "query": query,
+            "items": self._format_items(top_idx.tolist(), scores[top_idx].tolist()),
+        }
+
+    def search_ann(self, query: str, k: int = 10) -> dict:
+        k = min(k, len(self.items))
+        query_vec = self._encode_query(query)
+        scores, indices = self.index.search(query_vec.reshape(1, -1), k)
+        return {
+            "query": query,
+            "items": self._format_items(indices[0].tolist(), scores[0].tolist()),
+        }
+
+    def search(self, query: str, k: int = 10) -> dict:
+        return self.search_ann(query, k)
+
+    def benchmark(self, query_count: int = 100, k: int = 10) -> dict:
+        queries = self.benchmark_queries[:query_count]
+
+        ann_started = time.perf_counter()
+        for query in queries:
+            self.search_ann(query, k)
+        ann_total_ms = (time.perf_counter() - ann_started) * 1000.0
+
+        exact_started = time.perf_counter()
+        for query in queries:
+            self.search_exact(query, k)
+        exact_total_ms = (time.perf_counter() - exact_started) * 1000.0
+
+        return {
+            "query_count": len(queries),
+            "k": k,
+            "ann_total_ms": ann_total_ms,
+            "ann_avg_ms": ann_total_ms / len(queries),
+            "exact_total_ms": exact_total_ms,
+            "exact_avg_ms": exact_total_ms / len(queries),
+            "speedup": exact_total_ms / ann_total_ms if ann_total_ms > 0 else None,
+        }
